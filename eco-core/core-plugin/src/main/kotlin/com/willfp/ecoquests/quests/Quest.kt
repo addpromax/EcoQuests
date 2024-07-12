@@ -28,6 +28,7 @@ import com.willfp.libreforge.ViolationContext
 import com.willfp.libreforge.conditions.Conditions
 import com.willfp.libreforge.effects.Effects
 import com.willfp.libreforge.effects.executors.impl.NormalExecutorFactory
+import com.willfp.libreforge.toDispatcher
 import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
@@ -58,7 +59,7 @@ class Quest(
             )
 
             addLoreLines(
-                startConditions.getNotMetLines(player, EmptyProvidedHolder)
+                startConditions.getNotMetLines(player.toDispatcher(), EmptyProvidedHolder)
             )
 
             setDisplayName(
@@ -222,6 +223,28 @@ class Quest(
                     .formatEco(it)
             }
         }.register()
+
+        for (i in 1..this.tasks.size+1) {
+            PlayerPlaceholder(plugin, "quest_${id}_task_${i}_required_xp") {
+                this.tasks[i-1].getExperienceRequired(it).toNiceString()
+            }.register()
+
+            PlayerPlaceholder(plugin, "quest_${id}_task_${i}_xp") {
+                this.tasks[i-1].getExperience(it).toNiceString()
+            }.register()
+
+            PlayerPlaceholder(plugin, "quest_${id}_task_${i}_description") {
+                this.tasks[i-1].getDescription(it)
+            }.register()
+
+            PlayerPlaceholder(plugin, "quest_${id}_task_${i}_completed") {
+                this.tasks[i-1].hasCompleted(it).toNiceString()
+            }.register()
+
+            PlayerPlaceholder(plugin, "quest_${id}_task_${i}_completed_description") {
+                this.tasks[i-1].getCompletedDescription(it)
+            }.register()
+        }
     }
 
     override fun onRegister() {
@@ -257,7 +280,7 @@ class Quest(
     }
 
     fun meetsStartConditions(player: Player): Boolean {
-        return startConditions.areMet(player, EmptyProvidedHolder)
+        return startConditions.areMet(player.toDispatcher(), EmptyProvidedHolder)
     }
 
     fun shouldStart(player: Player): Boolean {
@@ -282,7 +305,7 @@ class Quest(
             return
         }
 
-        startEffects?.trigger(player)
+        startEffects?.trigger(player.toDispatcher())
         player.profile.write(hasStartedKey, true)
         player.profile.write(startedTimeKey, currentTimeMinutes)
 
@@ -408,7 +431,7 @@ class Quest(
     private fun complete(player: Player) {
         player.profile.write(hasCompletedKey, true)
         player.profile.write(completedTimeKey, currentTimeMinutes)
-        rewards?.trigger(player)
+        rewards?.trigger(player.toDispatcher())
 
         Bukkit.getPluginManager().callEvent(PlayerQuestCompleteEvent(player, this))
     }
